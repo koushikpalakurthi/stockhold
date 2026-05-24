@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  sku         String   @unique
+  description String
+  imageUrl    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stock        WarehouseStock[]
+  reservations Reservation[]
+}
+
+model Warehouse {
+  id        String   @id @default(cuid())
+  name      String
+  location  String
+  createdAt DateTime @default(now())
+
+  stock        WarehouseStock[]
+  reservations Reservation[]
+}
+
+model WarehouseStock {
+  id            String    @id @default(cuid())
+  product       Product   @relation(fields: [productId], references: [id])
+  productId     String
+  warehouse     Warehouse @relation(fields: [warehouseId], references: [id])
+  warehouseId   String
+  totalUnits    Int       @default(0)
+  reservedUnits Int       @default(0)
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([productId, warehouseId])
+}
+
+model Reservation {
+  id             String            @id @default(cuid())
+  product        Product           @relation(fields: [productId], references: [id])
+  productId      String
+  warehouse      Warehouse         @relation(fields: [warehouseId], references: [id])
+  warehouseId    String
+  quantity       Int
+  status         ReservationStatus @default(PENDING)
+  expiresAt      DateTime
+  confirmedAt    DateTime?
+  releasedAt     DateTime?
+  idempotencyKey String?           @unique
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model IdempotencyRecord {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  responseStatus Int
+  responseBody   String   @db.Text
+  createdAt      DateTime @default(now())
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  RELEASED
+}

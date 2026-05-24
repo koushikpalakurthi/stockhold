@@ -1,0 +1,25 @@
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+function createPrismaClient() {
+  // Prisma 7 requires a driver adapter.
+  // PrismaPg uses the standard `pg` package — works with Supabase, Neon, Railway, etc.
+  // Supabase tip: use the *pooled* connection string (port 6543) here for runtime queries.
+  const adapter = new PrismaPg(process.env.DATABASE_URL!);
+
+  return new PrismaClient({
+    adapter,
+    log:
+      process.env.NODE_ENV === "development"
+        ? ["query", "error", "warn"]
+        : ["error"],
+  });
+}
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
