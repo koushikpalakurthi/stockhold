@@ -18,13 +18,16 @@ export async function GET() {
       orderBy: { name: "asc" },
     });
 
-    const response = products.map((p) => ({
+    type ProductWithStock = (typeof products)[number];
+    type StockWithWarehouse = ProductWithStock["stock"][number];
+
+    const response = products.map((p: ProductWithStock) => ({
       id: p.id,
       name: p.name,
       sku: p.sku,
       description: p.description,
       imageUrl: p.imageUrl,
-      stock: p.stock.map((s) => ({
+      stock: p.stock.map((s: StockWithWarehouse) => ({
         warehouseId: s.warehouseId,
         warehouseName: s.warehouse.name,
         warehouseLocation: s.warehouse.location,
