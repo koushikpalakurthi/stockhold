@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { Prisma } from "@prisma/client";
+
 
 /**
  * Release all expired PENDING reservations and return reserved units to stock.
@@ -25,7 +25,7 @@ export async function releaseExpiredReservations(): Promise<number> {
   // 2. For each expired reservation, return stock and mark as RELEASED
   //    We use a transaction to keep the two operations atomic
   await prisma.$transaction(
-    expired.map((r: ExpiredRow): Prisma.PrismaPromise<unknown> =>
+    expired.map((r: ExpiredRow) =>
       prisma.warehouseStock.update({
         where: {
           productId_warehouseId: {
