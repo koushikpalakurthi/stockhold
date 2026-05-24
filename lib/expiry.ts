@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { Prisma } from "@prisma/client";
 
 /**
  * Release all expired PENDING reservations and return reserved units to stock.
@@ -6,8 +7,6 @@ import { prisma } from "./prisma";
  * This is the heart of the lazy-cleanup + cron belt-and-suspenders approach:
  * - Called at the start of GET /api/products (lazy cleanup on read)
  * - Also called by the /api/cron/cleanup endpoint every 5 minutes
- *
- * Uses a raw SQL UPDATE for atomicity — releases units back in a single statement.
  */
 export async function releaseExpiredReservations(): Promise<number> {
   // 1. Find all expired PENDING reservations
@@ -21,10 +20,12 @@ export async function releaseExpiredReservations(): Promise<number> {
 
   if (expired.length === 0) return 0;
 
+  type ExpiredRow = (typeof expired)[number];
+
   // 2. For each expired reservation, return stock and mark as RELEASED
   //    We use a transaction to keep the two operations atomic
   await prisma.$transaction(
-    expired.map((r) =>
+    expired.map((r: ExpiredRow): Prisma.PrismaPromise<unknown> =>
       prisma.warehouseStock.update({
         where: {
           productId_warehouseId: {
@@ -42,7 +43,7 @@ export async function releaseExpiredReservations(): Promise<number> {
   // 3. Bulk mark reservations as RELEASED
   await prisma.reservation.updateMany({
     where: {
-      id: { in: expired.map((r) => r.id) },
+      id: { in: expired.map((r: ExpiredRow) => r.id) },
     },
     data: {
       status: "RELEASED",
